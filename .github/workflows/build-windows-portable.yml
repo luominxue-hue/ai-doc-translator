@@ -1,0 +1,52 @@
+name: Build Windows Portable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build backend (PyInstaller onefile)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pyinstaller
+          pyinstaller --onefile --name mvp_backend backend/backend_server.py
+          if (!(Test-Path src-tauri/bin)) { New-Item -ItemType Directory -Path src-tauri/bin | Out-Null }
+          Copy-Item dist/mvp_backend.exe src-tauri/bin/mvp_backend.exe -Force
+
+      - name: Install frontend deps
+        run: npm install
+
+      - name: Build Tauri
+        run: npm run tauri:build
+
+      - name: Prepare portable folder
+        run: |
+          $out = "portable/AI 鏂囨。缈昏瘧鍔╂墜"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item "src-tauri/target/release/ai-doc-translator.exe" "$out/AI 鏂囨。缈昏瘧鍔╂墜.exe" -Force
+          Copy-Item "src-tauri/bin/mvp_backend.exe" "$out/mvp_backend.exe" -Force
+          Copy-Item "README_PORTABLE.txt" "$out/README.txt" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_Doc_Translator_Portable
+          path: portable
