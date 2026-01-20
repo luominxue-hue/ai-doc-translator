@@ -40,7 +40,6 @@ jobs:
           }
 
           Write-Host "=== Run PyInstaller (log to backend/pyinstaller.log) ==="
-          # 把 PyInstaller 输出保存到文件，便于定位失败原因
           python -m PyInstaller `
             --onefile `
             --noconfirm `
@@ -53,17 +52,10 @@ jobs:
 
           $code = $LASTEXITCODE
 
-          Write-Host "=== Tail pyinstaller.log (last 200 lines) ==="
-          if (Test-Path "backend/pyinstaller.log") {
-            Get-Content backend/pyinstaller.log -Tail 200
-          } else {
-            Write-Host "pyinstaller.log not found"
-          }
+          Write-Host "=== Tail pyinstaller.log (last 120 lines) ==="
+          if (Test-Path "backend/pyinstaller.log") { Get-Content backend/pyinstaller.log -Tail 120 }
 
           if ($code -ne 0) { throw "PyInstaller failed with exit code $code" }
-
-          Write-Host "=== backend/dist contents ==="
-          Get-ChildItem -Recurse -Force backend/dist
 
           if (!(Test-Path "src-tauri/bin")) {
             New-Item -ItemType Directory -Force -Path "src-tauri/bin" | Out-Null
@@ -75,8 +67,6 @@ jobs:
           }
 
           Copy-Item $found.FullName "src-tauri/bin/mvp_backend.exe" -Force
-
-          Write-Host "=== Copied backend exe to src-tauri/bin ==="
           Get-ChildItem -Force src-tauri/bin
 
       - name: Upload PyInstaller log (always)
@@ -92,6 +82,28 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build
 
+      - name: Generate default icons (required by tauri-build)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --upgrade pip
+          pip install pillow
+
+          if (!(Test-Path "src-tauri/icons")) { New-Item -ItemType Directory -Force -Path "src-tauri/icons" | Out-Null }
+
+          $py = @"
+from PIL import Image
+import os
+os.makedirs('src-tauri/icons', exist_ok=True)
+img = Image.new('RGBA', (256, 256), (30, 144, 255, 255))
+img.save('src-tauri/icons/icon.png')
+img.save('src-tauri/icons/icon.ico', sizes=[(256,256),(128,128),(64,64),(32,32),(16,16)])
+print('icons generated')
+"@
+          $py | Out-File -FilePath "gen_icon.py" -Encoding utf8
+          python gen_icon.py
+          Get-ChildItem -Force "src-tauri/icons"
+
       - name: Build Tauri
         run: npm run tauri:build
 
@@ -103,25 +115,10 @@ jobs:
           $out = "portable/AI 文档翻译助手"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
 
-          if (!(Test-Path "src-tauri/target/release/ai-doc-translator.exe")) {
-            Write-Host "=== src-tauri/target/release contents ==="
-            Get-ChildItem -Recurse -Force "src-tauri/target/release" -ErrorAction SilentlyContinue
-            throw "Missing built app exe: src-tauri/target/release/ai-doc-translator.exe"
-          }
-
           Copy-Item "src-tauri/target/release/ai-doc-translator.exe" "$out/AI 文档翻译助手.exe" -Force
-
-          if (!(Test-Path "src-tauri/bin/mvp_backend.exe")) {
-            throw "Missing backend exe in src-tauri/bin/mvp_backend.exe"
-          }
           Copy-Item "src-tauri/bin/mvp_backend.exe" "$out/mvp_backend.exe" -Force
-
-          if (!(Test-Path "README_PORTABLE.txt")) {
-            throw "Missing README_PORTABLE.txt"
-          }
           Copy-Item "README_PORTABLE.txt" "$out/README.txt" -Force
 
-          Write-Host "=== Portable folder prepared ==="
           Get-ChildItem -Recurse -Force "portable"
 
       - name: Upload portable artifact
