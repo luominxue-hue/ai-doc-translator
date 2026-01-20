@@ -1,23 +1,74 @@
-- name: Build backend (PyInstaller onefile)
-  shell: pwsh
-  run: |
-    python -m pip install --upgrade pip
-    pip install -r backend/requirements.txt pyinstaller
+name: Build Windows Portable
 
-    # 固定输出目录，避免找不到 dist/mvp_backend.exe
-    pyinstaller --onefile --name mvp_backend backend/backend_server.py --distpath backend/dist --workpath backend/build
+on:
+  workflow_dispatch:
 
-    if (!(Test-Path "src-tauri/bin")) { New-Item -ItemType Directory -Force -Path "src-tauri/bin" | Out-Null }
+jobs:
+  build:
+    runs-on: windows-latest
 
-    # 兼容 onefile/onedir 两种可能输出
-    $exe1 = "backend/dist/mvp_backend.exe"
-    $exe2 = "backend/dist/mvp_backend/mvp_backend.exe"
-    if (Test-Path $exe1) { $src = $exe1 }
-    elseif (Test-Path $exe2) { $src = $exe2 }
-    else {
-      Write-Host "backend/dist contents:"
-      Get-ChildItem -Recurse "backend/dist" -ErrorAction SilentlyContinue
-      throw "mvp_backend.exe not found after PyInstaller"
-    }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    Copy-Item $src "src-tauri/bin/mvp_backend.exe" -Force
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build backend (PyInstaller onefile)
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pyinstaller
+
+          # 固定输出目录，避免找不到 dist/mvp_backend.exe
+          pyinstaller --onefile --name mvp_backend backend/backend_server.py --distpath backend/dist --workpath backend/build
+
+          if (!(Test-Path "src-tauri/bin")) { New-Item -ItemType Directory -Force -Path "src-tauri/bin" | Out-Null }
+
+          # 兼容 onefile/onedir 两种输出
+          $exe1 = "backend/dist/mvp_backend.exe"
+          $exe2 = "backend/dist/mvp_backend/mvp_backend.exe"
+          if (Test-Path $exe1) { $src = $exe1 }
+          elseif (Test-Path $exe2) { $src = $exe2 }
+          else {
+            Write-Host "backend/dist contents:"
+            Get-ChildItem -Recurse "backend/dist" -ErrorAction SilentlyContinue
+            throw "mvp_backend.exe not found after PyInstaller"
+          }
+
+          Copy-Item $src "src-tauri/bin/mvp_backend.exe" -Force
+
+      - name: Install frontend deps
+        run: npm install
+
+      - name: Build frontend (Vite)
+        run: npm run build
+
+      - name: Build Tauri
+        run: npm run tauri:build
+
+      - name: Prepare portable folder
+        shell: pwsh
+        run: |
+          $out = "portable/AI 文档翻译助手"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+          Copy-Item "src-tauri/target/release/ai-doc-translator.exe" "$out/AI 文档翻译助手.exe" -Force
+          Copy-Item "src-tauri/bin/mvp_backend.exe" "$out/mvp_backend.exe" -Force
+          Copy-Item "README_PORTABLE.txt" "$out/README.txt" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_Doc_Translator_Portable
+          path: portable
