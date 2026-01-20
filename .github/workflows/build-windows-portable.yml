@@ -1,0 +1,101 @@
+name: Build Windows Portable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build backend (PyInstaller onefile)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pyinstaller
+
+          python -m PyInstaller --onefile --noconfirm --clean --name mvp_backend backend/backend_server.py --distpath backend/dist --workpath backend/build *>&1 | Tee-Object -FilePath backend/pyinstaller.log
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+
+          if (!(Test-Path "src-tauri/bin")) { New-Item -ItemType Directory -Force -Path "src-tauri/bin" | Out-Null }
+          if (!(Test-Path "backend/dist/mvp_backend.exe")) {
+            Get-ChildItem -Recurse -Force backend/dist
+            throw "backend/dist/mvp_backend.exe not found"
+          }
+          Copy-Item "backend/dist/mvp_backend.exe" "src-tauri/bin/mvp_backend.exe" -Force
+
+      - name: Upload PyInstaller log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyinstaller_log
+          path: backend/pyinstaller.log
+
+      - name: Install frontend deps
+        run: npm install
+
+      - name: Build frontend (Vite)
+        run: npm run build
+
+      - name: Generate default icon.ico for Tauri (Windows)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --upgrade pip
+          pip install pillow
+
+          if (!(Test-Path "src-tauri/icons")) { New-Item -ItemType Directory -Force -Path "src-tauri/icons" | Out-Null }
+
+          python -c "from PIL import Image; import os; os.makedirs(r'src-tauri/icons', exist_ok=True); img=Image.new('RGBA',(256,256),(30,144,255,255)); img.save(r'src-tauri/icons/icon.png'); img.save(r'src-tauri/icons/icon.ico', sizes=[(256,256),(128,128),(64,64),(32,32),(16,16)]); print('icon ok')"
+
+          Get-ChildItem -Force "src-tauri/icons"
+
+      - name: Build Tauri
+        run: npm run tauri:build
+
+      - name: Prepare portable folder
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $out = "portable/AI_Doc_Translator"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+          if (!(Test-Path "src-tauri/target/release")) {
+            throw "src-tauri/target/release not found"
+          }
+
+          # Find the built app exe (name can vary slightly)
+          $appExe = Get-ChildItem "src-tauri/target/release" -Filter "*.exe" | Where-Object { $_.Name -notlike "*build*" } | Select-Object -First 1
+          if (-not $appExe) {
+            Get-ChildItem -Recurse -Force "src-tauri/target/release"
+            throw "No app exe found in src-tauri/target/release"
+          }
+
+          Copy-Item $appExe.FullName "$out/AI Document Translator.exe" -Force
+          Copy-Item "src-tauri/bin/mvp_backend.exe" "$out/mvp_backend.exe" -Force
+          Copy-Item "README_PORTABLE.txt" "$out/README.txt" -Force
+
+          Get-ChildItem -Recurse -Force "portable"
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_Doc_Translator_Portable
+          path: portable
