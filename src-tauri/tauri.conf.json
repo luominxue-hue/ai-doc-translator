@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
-  "productName": "ai-doc-translator",
+  "productName": "AI Document Translator",
   "version": "0.1.0",
   "identifier": "com.example.aidoctranslator",
   "build": {
@@ -8,6 +8,15 @@
     "devUrl": "http://localhost:5173"
   },
   "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "AI Document Translator",
+        "width": 1100,
+        "height": 800,
+        "resizable": true
+      }
+    ],
     "security": {
       "csp": null
     }
