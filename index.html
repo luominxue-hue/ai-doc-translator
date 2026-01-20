@@ -1,66 +1,74 @@
-﻿<!doctype html>
-<html lang="zh-CN">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI 鏂囨。缈昏瘧鍔╂墜</title>
+    <title>AI Document Translator (MVP)</title>
   </head>
   <body>
     <div id="app">
-      <h1>AI 鏂囨。缈昏瘧鍔╂墜锛圡VP锛?/h1>
+      <h1>AI Document Translator (MVP)</h1>
 
       <section>
-        <h2>1. 杩炴帴璁剧疆锛圢VIDIA NIM / OpenAI-compatible锛?/h2>
+        <h2>1) Connection (NVIDIA NIM / OpenAI-compatible)</h2>
         <div class="grid">
-          <label>Base URL <input id="baseUrl" placeholder="渚嬪 https://integrate.api.nvidia.com/v1" /></label>
-          <label>API Key <input id="apiKey" placeholder="绮樿创浣犵殑 key" /></label>
-          <label>Model <input id="model" placeholder="渚嬪 meta/llama-..." /></label>
-          <button id="saveSettings">淇濆瓨璁剧疆</button>
+          <label>Base URL
+            <input id="baseUrl" placeholder="e.g. https://integrate.api.nvidia.com/v1" />
+          </label>
+          <label>API Key
+            <input id="apiKey" placeholder="paste your API key here" />
+          </label>
+          <label>Model
+            <input id="model" placeholder="e.g. meta/llama-..." />
+          </label>
+          <button id="saveSettings">Save Settings</button>
         </div>
         <pre id="settingsHint"></pre>
       </section>
 
       <section>
-        <h2>2. 涓婁紶 DOCX 骞跺垱寤轰换鍔?/h2>
+        <h2>2) Upload DOCX & Create Task</h2>
         <div class="grid">
-          <label>鏂瑰悜
+          <label>Direction
             <select id="direction">
-              <option value="zh->en">涓枃 鈫?鑻辨枃</option>
-              <option value="en->zh">鑻辨枃 鈫?涓枃</option>
+              <option value="zh->en">Chinese → English</option>
+              <option value="en->zh">English → Chinese</option>
             </select>
           </label>
-          <label>閫夋嫨 DOCX <input id="file" type="file" accept=".docx" /></label>
-          <button id="createTask">鍒涘缓浠诲姟</button>
+          <label>Select DOCX
+            <input id="file" type="file" accept=".docx" />
+          </label>
+          <button id="createTask">Create Task</button>
         </div>
         <pre id="taskHint"></pre>
       </section>
 
       <section>
-        <h2>3. 缈昏瘧涓庤繘搴?/h2>
+        <h2>3) Translate & Progress</h2>
         <div class="grid">
-          <button id="runTranslate">寮€濮?缁х画缈昏瘧</button>
-          <button id="refreshTask">鍒锋柊杩涘害</button>
-          <button id="loadBlocks">鍔犺浇瀵圭収鍧?/button>
-          <button id="exportDocx">瀵煎嚭璇戞枃 DOCX锛堜笅杞藉埌榛樿涓嬭浇鐩綍锛?/button>
+          <button id="runTranslate">Start / Continue Translation</button>
+          <button id="refreshTask">Refresh Progress</button>
+          <button id="loadBlocks">Load Blocks</button>
+          <button id="exportDocx">Export DOCX</button>
         </div>
         <pre id="progressHint"></pre>
       </section>
 
       <section>
-        <h2>4. 瀵圭収瀹℃牎锛堢偣閫変竴鏉＄紪杈戣瘧鏂囷級</h2>
+        <h2>4) Review (Select a block, edit translation, save)</h2>
         <div class="twoCol">
           <div>
-            <h3>鍧楀垪琛?/h3>
+            <h3>Block List</h3>
             <div id="blockList" class="list"></div>
           </div>
           <div>
-            <h3>缂栬緫</h3>
+            <h3>Edit</h3>
             <div>
-              <div class="small">鍘熸枃锛?/div>
+              <div class="small">Source:</div>
               <textarea id="srcText" readonly></textarea>
-              <div class="small">璇戞枃锛堝彲缂栬緫锛夛細</div>
+              <div class="small">Translation (editable):</div>
               <textarea id="dstText"></textarea>
-              <button id="saveBlock">淇濆瓨鏈潯淇敼</button>
+              <button id="saveBlock">Save Changes</button>
               <pre id="blockHint"></pre>
             </div>
           </div>
@@ -69,6 +77,7 @@
     </div>
 
     <script type="module" src="/src/main.ts"></script>
+
     <style>
       body { font-family: Arial, Helvetica, sans-serif; margin: 16px; }
       .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
