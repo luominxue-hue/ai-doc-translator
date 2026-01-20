@@ -155,7 +155,34 @@ async function main() {
   await getBaseUrl();
   setText("settingsHint", `Backend connected: ${BASE}`);
   setProgress(0, "");
+$("loadModels").onclick = async () => {
+  try {
+    const base_url = $("baseUrl").value.trim();
+    const api_key = $("apiKey").value.trim();
+    if (!base_url || !api_key) throw new Error("Base URL and API Key are required.");
 
+    const out = await apiPostJson("/api/models", { base_url, api_key });
+    const models: string[] = out.models || [];
+
+    const sel = $("model") as HTMLSelectElement;
+    sel.innerHTML = "";
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      sel.appendChild(opt);
+    }
+
+    // auto select recommended model if present
+    const prefer = "nvidia/riva-translate-4b-instruct-v1.1";
+    const idx = models.indexOf(prefer);
+    if (idx >= 0) sel.value = prefer;
+
+    setText("settingsHint", `Loaded models: ${models.length}\nNormalized base_url: ${out.base_url}`);
+  } catch (e: any) {
+    setText("settingsHint", String(e?.message || e));
+  }
+};
   $("saveSettings").onclick = async () => {
     try {
       const base_url = $("baseUrl").value.trim();
@@ -273,3 +300,4 @@ async function main() {
 main().catch((e) => {
   setText("settingsHint", `Fatal error: ${String((e as any)?.message || e)}`);
 });
+
