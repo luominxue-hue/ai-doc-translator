@@ -132,11 +132,14 @@ def apply_translations(src_docx: str, out_docx: str, locator_to_text: dict):
     doc.save(out_docx)
 
 def build_messages(text: str, direction: str):
-    target = "鑻辨枃" if direction == "zh->en" else "涓枃"
-    system = ("浣犳槸涓撲笟缈昏瘧銆傚彧杈撳嚭璇戞枃锛屼笉瑕佽В閲婏紝涓嶈娣诲姞浠讳綍鍓嶅悗缂€銆?
-              "灏介噺淇濇寔鍘熸湁鏁板瓧銆佸崟浣嶃€佺鍙枫€佷笓鏈夊悕璇嶇缉鍐欍€備笉瑕佹坊鍔犲浣欐崲琛屻€?)
-    user = f"璇峰皢浠ヤ笅鍐呭缈昏瘧鎴恵target}锛歕n\n{text}"
-    return [{"role":"system","content":system},{"role":"user","content":user}]
+    target = "English" if direction == "zh->en" else "Chinese"
+    system = (
+        "You are a professional translator. Output only the translation. "
+        "Do not add explanations or any extra text. "
+        "Preserve numbers, units, symbols, and formatting as much as possible."
+    )
+    user = f"Translate the following text into {target}:\n\n{text}"
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 # ---------- app ----------
 init_db()
@@ -340,3 +343,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
