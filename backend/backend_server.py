@@ -14,7 +14,6 @@ from fastapi.responses import FileResponse
 from docx import Document
 from openai import OpenAI
 
-
 # -----------------------------
 # Compatibility fix (Windows)
 # Some environments may not expose socket.AF_UNIX.
@@ -22,6 +21,14 @@ from openai import OpenAI
 # -----------------------------
 if not hasattr(socket, "AF_UNIX"):
     socket.AF_UNIX = 1
+
+
+# ---------- helpers ----------
+def normalize_base_url(url: str) -> str:
+    u = (url or "").strip().rstrip("/")
+    if not u.endswith("/v1"):
+        u = u + "/v1"
+    return u
 
 
 # ---------- dirs ----------
@@ -53,11 +60,7 @@ def db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def normalize_base_url(url: str) -> str:
-    u = (url or "").strip().rstrip("/")
-    if not u.endswith("/v1"):
-        u = u + "/v1"
-    return u
+
 def init_db():
     conn = db()
     cur = conn.cursor()
@@ -204,7 +207,6 @@ def build_messages(text: str, direction: str):
 init_db()
 app = FastAPI(title="MVP Backend")
 
-# Allow local UI to call local backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -228,13 +230,15 @@ def api_get_settings():
 
 @app.post("/api/settings")
 def api_save_settings(payload: dict):
-   base_url = normalize_base_url(payload.get("base_url") or "")
+    base_url = normalize_base_url(payload.get("base_url") or "")
     api_key = (payload.get("api_key") or "").strip()
     model = (payload.get("model") or "").strip()
     if not base_url or not api_key or not model:
         raise HTTPException(400, "base_url/api_key/model required")
     upsert_settings(base_url, api_key, model)
-    return {"ok": True}
+    return {"ok": True, "base_url": base_url, "model": model}
+
+
 @app.post("/api/models")
 def api_list_models(payload: dict):
     base_url = normalize_base_url(payload.get("base_url") or "")
@@ -247,14 +251,18 @@ def api_list_models(payload: dict):
 
     ids = [m.id for m in (r.data or [])]
 
-    # Put recommended translation models at the top if available
+    # Prefer translation models first if available
     preferred = [
         "nvidia/riva-translate-4b-instruct-v1.1",
         "nvidia/riva-translate-4b-instruct",
     ]
-    ids_sorted = sorted(ids, key=lambda x: (0 if x in preferred else 1, x))
 
+    def sort_key(x: str):
+        return (0 if x in preferred else 1, x)
+
+    ids_sorted = sorted(ids, key=sort_key)
     return {"base_url": base_url, "models": ids_sorted}
+
 
 @app.post("/api/tasks")
 async def create_task(file: UploadFile = File(...), direction: str = Form(...)):
@@ -465,7 +473,7 @@ def main():
     parser.add_argument("--port-file", required=True)
     args = parser.parse_args()
 
-    # Pick a free TCP port (do NOT use uvicorn fd-mode; improves Windows compatibility)
+    # Pick a free TCP port (avoid uvicorn fd-mode for Windows compatibility)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((args.host, 0))
     port = s.getsockname()[1]
@@ -486,4 +494,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
