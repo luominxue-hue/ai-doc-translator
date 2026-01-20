@@ -146,7 +146,7 @@ async function main() {
       a.download = "translated.docx";
       a.click();
       URL.revokeObjectURL(a.href);
-      setText("progressHint", "宸茶Е鍙戜笅杞斤細translated.docx锛堝湪榛樿涓嬭浇鐩綍锛?);
+      setText("progressHint", "Download started: translated.docx (check your default Downloads folder).");
     } catch (e: any) {
       setText("progressHint", String(e));
     }
@@ -156,3 +156,4 @@ async function main() {
 main().catch(e => {
   setText("settingsHint", String(e));
 });
+
