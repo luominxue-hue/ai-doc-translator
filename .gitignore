@@ -1,0 +1,8 @@
+﻿dist/
+node_modules/
+src-tauri/target/
+mvp_data/
+backend/__pycache__/
+backend/build/
+backend/dist/
+*.log
