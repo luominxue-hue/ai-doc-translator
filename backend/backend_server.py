@@ -53,7 +53,11 @@ def db():
     conn.row_factory = sqlite3.Row
     return conn
 
-
+def normalize_base_url(url: str) -> str:
+    u = (url or "").strip().rstrip("/")
+    if not u.endswith("/v1"):
+        u = u + "/v1"
+    return u
 def init_db():
     conn = db()
     cur = conn.cursor()
@@ -224,14 +228,33 @@ def api_get_settings():
 
 @app.post("/api/settings")
 def api_save_settings(payload: dict):
-    base_url = (payload.get("base_url") or "").strip()
+   base_url = normalize_base_url(payload.get("base_url") or "")
     api_key = (payload.get("api_key") or "").strip()
     model = (payload.get("model") or "").strip()
     if not base_url or not api_key or not model:
         raise HTTPException(400, "base_url/api_key/model required")
     upsert_settings(base_url, api_key, model)
     return {"ok": True}
+@app.post("/api/models")
+def api_list_models(payload: dict):
+    base_url = normalize_base_url(payload.get("base_url") or "")
+    api_key = (payload.get("api_key") or "").strip()
+    if not base_url or not api_key:
+        raise HTTPException(400, "base_url and api_key required")
 
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    r = client.models.list()
+
+    ids = [m.id for m in (r.data or [])]
+
+    # Put recommended translation models at the top if available
+    preferred = [
+        "nvidia/riva-translate-4b-instruct-v1.1",
+        "nvidia/riva-translate-4b-instruct",
+    ]
+    ids_sorted = sorted(ids, key=lambda x: (0 if x in preferred else 1, x))
+
+    return {"base_url": base_url, "models": ids_sorted}
 
 @app.post("/api/tasks")
 async def create_task(file: UploadFile = File(...), direction: str = Form(...)):
@@ -463,3 +486,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
