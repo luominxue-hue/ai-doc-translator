@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "productName": "ai-doc-translator",
+  "version": "0.1.0",
+  "identifier": "com.example.aidoctranslator",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173"
+  },
+  "app": {
+    "security": { "csp": null }
+  }
+}
