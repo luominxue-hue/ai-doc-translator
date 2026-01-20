@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "productName": "ai-doc-translator",
   "version": "0.1.0",
@@ -8,6 +8,8 @@
     "devUrl": "http://localhost:5173"
   },
   "app": {
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   }
 }
