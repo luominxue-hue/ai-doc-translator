@@ -39,9 +39,28 @@ jobs:
             throw "Missing backend/backend_server.py in repo"
           }
 
-          Write-Host "=== Run PyInstaller ==="
-          python -m PyInstaller --onefile --name mvp_backend backend/backend_server.py --distpath backend/dist --workpath backend/build
-          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
+          Write-Host "=== Run PyInstaller (log to backend/pyinstaller.log) ==="
+          # 把 PyInstaller 输出保存到文件，便于定位失败原因
+          python -m PyInstaller `
+            --onefile `
+            --noconfirm `
+            --clean `
+            --log-level=DEBUG `
+            --name mvp_backend `
+            backend/backend_server.py `
+            --distpath backend/dist `
+            --workpath backend/build 2>&1 | Tee-Object -FilePath backend/pyinstaller.log
+
+          $code = $LASTEXITCODE
+
+          Write-Host "=== Tail pyinstaller.log (last 200 lines) ==="
+          if (Test-Path "backend/pyinstaller.log") {
+            Get-Content backend/pyinstaller.log -Tail 200
+          } else {
+            Write-Host "pyinstaller.log not found"
+          }
+
+          if ($code -ne 0) { throw "PyInstaller failed with exit code $code" }
 
           Write-Host "=== backend/dist contents ==="
           Get-ChildItem -Recurse -Force backend/dist
@@ -59,6 +78,13 @@ jobs:
 
           Write-Host "=== Copied backend exe to src-tauri/bin ==="
           Get-ChildItem -Force src-tauri/bin
+
+      - name: Upload PyInstaller log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyinstaller_log
+          path: backend/pyinstaller.log
 
       - name: Install frontend deps
         run: npm install
@@ -98,7 +124,7 @@ jobs:
           Write-Host "=== Portable folder prepared ==="
           Get-ChildItem -Recurse -Force "portable"
 
-      - name: Upload artifact
+      - name: Upload portable artifact
         uses: actions/upload-artifact@v4
         with:
           name: AI_Doc_Translator_Portable
