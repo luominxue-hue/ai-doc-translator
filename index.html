@@ -15,14 +15,19 @@
           <label>Base URL
             <input id="baseUrl" placeholder="e.g. https://integrate.api.nvidia.com/v1" />
           </label>
+
           <label>API Key
             <input id="apiKey" placeholder="paste your API key here" />
           </label>
-          <label>Model
-            <input id="model" placeholder="e.g. nvidia/riva-translate-4b-instruct-v1.1" />
+
+          <label>Model (dropdown)
+            <select id="model"></select>
           </label>
+
+          <button id="loadModels">Load Models</button>
           <button id="saveSettings">Save Settings</button>
         </div>
+
         <pre id="settingsHint"></pre>
       </section>
 
@@ -35,11 +40,14 @@
               <option value="en->zh">English → Chinese</option>
             </select>
           </label>
+
           <label>Select DOCX
             <input id="file" type="file" accept=".docx" />
           </label>
+
           <button id="createTask">Create Task</button>
         </div>
+
         <pre id="taskHint"></pre>
       </section>
 
@@ -62,7 +70,7 @@
       </section>
 
       <section>
-        <h2>4) Review (Select a block, edit translation, save)</h2>
+        <h2>4) Review</h2>
         <div class="twoCol">
           <div>
             <h3>Block List</h3>
@@ -97,7 +105,6 @@
       .item { border-bottom: 1px solid #eee; padding: 6px; cursor: pointer; }
       .item:hover { background: #fafafa; }
       .small { color: #666; margin: 6px 0; }
-
       .progressRow { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
       progress { width: 420px; height: 18px; }
       #progressPct { min-width: 48px; }
