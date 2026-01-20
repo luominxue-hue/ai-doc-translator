@@ -19,7 +19,7 @@
             <input id="apiKey" placeholder="paste your API key here" />
           </label>
           <label>Model
-            <input id="model" placeholder="e.g. meta/llama-..." />
+            <input id="model" placeholder="e.g. nvidia/riva-translate-4b-instruct-v1.1" />
           </label>
           <button id="saveSettings">Save Settings</button>
         </div>
@@ -44,13 +44,20 @@
       </section>
 
       <section>
-        <h2>3) Translate & Progress</h2>
+        <h2>3) Translate & Progress (Auto)</h2>
         <div class="grid">
           <button id="runTranslate">Start / Continue Translation</button>
-          <button id="refreshTask">Refresh Progress</button>
           <button id="loadBlocks">Load Blocks</button>
           <button id="exportDocx">Export DOCX</button>
         </div>
+
+        <div class="progressRow">
+          <progress id="progressBar" max="1" value="0"></progress>
+          <span id="progressPct">0%</span>
+          <span id="progressStatus"></span>
+        </div>
+        <div id="progressCounts" class="small"></div>
+
         <pre id="progressHint"></pre>
       </section>
 
@@ -90,6 +97,11 @@
       .item { border-bottom: 1px solid #eee; padding: 6px; cursor: pointer; }
       .item:hover { background: #fafafa; }
       .small { color: #666; margin: 6px 0; }
+
+      .progressRow { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+      progress { width: 420px; height: 18px; }
+      #progressPct { min-width: 48px; }
+      #progressStatus { color: #444; }
     </style>
   </body>
 </html>
