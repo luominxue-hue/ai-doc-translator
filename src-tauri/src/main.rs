@@ -7,7 +7,7 @@ use std::{
   sync::Mutex,
   time::{Duration, Instant},
 };
-use tauri::State;
+use tauri::{Manager, State};
 
 #[derive(Default)]
 struct BackendState(Mutex<Option<String>>);
@@ -92,17 +92,16 @@ fn main() {
     .manage(BackendState::default())
     .invoke_handler(tauri::generate_handler![get_backend_base_url])
     .setup(|app| {
-      // NOTE: this closure must return Result<(), Box<dyn Error>>
+      // The setup closure must return Result<(), Box<dyn Error>>
       let data_dir = app.path().app_data_dir()?;
       fs::create_dir_all(&data_dir)?;
 
-      // unique port-file name to avoid conflicts
       let port_file = data_dir.join(format!("backend-port-{}.json", uuid::Uuid::new_v4()));
       if port_file.exists() {
         let _ = fs::remove_file(&port_file);
       }
 
-      // make sure port-file is writable (optional, for quick validation)
+      // quick write check (optional)
       atomic_write(&port_file, "")?;
       let _ = fs::remove_file(&port_file);
 
